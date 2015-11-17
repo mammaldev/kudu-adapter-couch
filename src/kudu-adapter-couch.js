@@ -116,7 +116,10 @@ export default class CouchAdapter {
       throw new Error('No CouchDB view available for type queries.');
     }
 
-    return this.couch.view(doc.design, doc.view)
+    return this.couch.view(doc.design, doc.view, {
+      rootKey: [ type ],
+      include_docs: true,
+    })
     .then(( res ) => {
 
       return {
