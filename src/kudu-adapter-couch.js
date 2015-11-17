@@ -34,6 +34,20 @@ export default class CouchAdapter {
       throw new Error('A CouchDB host, port and path are required.');
     }
 
+    // If a custom "document to model" function is not provided we default to
+    // one that simply maps "_id" to "id".
+    if ( typeof config.documentToModel !== 'function' ) {
+
+      config.documentToModel = ( doc ) => {
+
+        doc.id = doc._id;
+        delete doc._id;
+
+        return doc;
+      };
+    }
+
+    this.config = config;
     this.couch = new CouchPromised({
       host,
       port,
@@ -65,5 +79,16 @@ export default class CouchAdapter {
 
       return instance;
     });
+  }
+
+  // Get a Kudu model instance by type and unique identifier.
+  get( type, id ) {
+
+    if ( !type || !id ) {
+      throw new Error('Expected a Kudu model type and unique identifier.');
+    }
+
+    return this.couch.get(id)
+    .then(( res ) => this.config.documentToModel(res));
   }
 }

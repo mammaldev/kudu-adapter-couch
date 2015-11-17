@@ -11,6 +11,13 @@ class MockCouch {
       _rev: '1',
     });
   }
+  get( id ) {
+
+    return Promise.resolve({
+      _id: '1',
+      _rev: '1',
+    });
+  }
 }
 
 class MockModel {
@@ -50,6 +57,24 @@ describe('Kudu CouchDB adapter', () => {
       port: 5984,
     });
     expect(test).to.throw(Error, /path/);
+  });
+
+  it('should expose the config object', () => {
+    expect(new Adapter({
+      host: 'http://127.0.0.1',
+      port: 5984,
+      path: '/test',
+    })).to.have.property('config').that.is.an('object');
+  });
+
+  it('should allow a custom "document to model" function', () => {
+    let documentToModel = () => {};
+    expect(new Adapter({
+      host: 'http://127.0.0.1',
+      port: 5984,
+      path: '/test',
+      documentToModel,
+    }).config).to.have.property('documentToModel', documentToModel);
   });
 
   it('should expose a CouchDB interface', () => {
@@ -92,6 +117,33 @@ describe('Kudu CouchDB adapter', () => {
       let instance = new MockModel();
       return adapter.create(instance)
       .then(() => expect(instance).to.have.property('_rev', '1'));
+    });
+  });
+
+  describe('#get', () => {
+
+    let adapter;
+
+    beforeEach(() => {
+      adapter = new Adapter({
+        host: 'http://127.0.0.1',
+        port: 5984,
+        path: '/test',
+      });
+    });
+
+    it('should throw if not passed a type', () => {
+      let test = () => adapter.get();
+      expect(test).to.throw(Error, /model type/);
+    });
+
+    it('should throw if not passed an identifier', () => {
+      let test = () => adapter.get('type');
+      expect(test).to.throw(Error, /identifier/);
+    });
+
+    it('should return the CouchDB document', () => {
+      return expect(adapter.get('type', '1')).to.become({ id: '1', _rev: '1' });
     });
   });
 });
