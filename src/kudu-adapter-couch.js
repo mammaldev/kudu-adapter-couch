@@ -47,6 +47,14 @@ export default class CouchAdapter {
       };
     }
 
+    // If custom views are not provided we default to the ones in the included
+    // design document.
+    config.views = config.views || Object.create(null);
+    config.views.type = config.views.type || {
+      design: 'kudu-adapter-couch',
+      view: 'type_id',
+    };
+
     this.config = config;
     this.couch = new CouchPromised({
       host,
@@ -90,5 +98,30 @@ export default class CouchAdapter {
 
     return this.couch.get(id)
     .then(( res ) => this.config.documentToModel(res));
+  }
+
+  // Get all documents representing a given Kudu model type.
+  getAll( type ) {
+
+    if ( !type ) {
+      throw new Error('Expected a Kudu model type.');
+    }
+
+    // A CouchDB view is required for "get all by type" queries. The default
+    // view emits all documents by "type" and "_id". If a view is not defined
+    // for this action we throw an error.
+    const doc = this.config.views.type;
+
+    if ( !doc.design || !doc.view ) {
+      throw new Error('No CouchDB view available for type queries.');
+    }
+
+    return this.couch.view(doc.design, doc.view)
+    .then(( res ) => {
+
+      return {
+        rows: res.rows.map(( row ) => this.config.documentToModel(row.doc)),
+      };
+    });
   }
 }
