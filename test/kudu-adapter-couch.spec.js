@@ -27,6 +27,13 @@ class MockCouch {
       ],
     });
   }
+  viewDocs( design, view ) {
+
+    return Promise.resolve([
+      { _id: '1', _rev: '1' },
+      { _id: '2', _rev: '1' },
+    ]);
+  }
 }
 
 class MockModel {
@@ -201,6 +208,36 @@ describe('Kudu CouchDB adapter', () => {
           { id: '2', _rev: '1' },
         ],
       });
+    });
+  });
+
+  describe('#getFromView', () => {
+
+    let adapter;
+
+    beforeEach(() => {
+      adapter = new Adapter({
+        host: 'http://127.0.0.1',
+        port: 5984,
+        path: '/test',
+      });
+    });
+
+    it('should throw an error if not passed a design document identifier', () => {
+      let test = () => adapter.getFromView();
+      expect(test).to.throw(Error, /design document/);
+    });
+
+    it('should throw an error if not passed a view identifier', () => {
+      let test = () => adapter.getFromView('design');
+      expect(test).to.throw(Error, /view/);
+    });
+
+    it('should return an array of CouchDB documents', () => {
+      return expect(adapter.getFromView('design', 'view')).to.become([
+        { id: '1', _rev: '1' },
+        { id: '2', _rev: '1' },
+      ]);
     });
   });
 });

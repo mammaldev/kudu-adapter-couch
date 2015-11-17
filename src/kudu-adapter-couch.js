@@ -124,4 +124,20 @@ export default class CouchAdapter {
       };
     });
   }
+
+  //
+  // Methods from this point onwards are specific to the CouchDB adapter. Those
+  // listed previously should be common to all Kudu adapters.
+  //
+
+  //
+  getFromView( design = '', view = '', config = {} ) {
+
+    if ( !design || !view ) {
+      throw new Error('Expected a design document identifier and view.');
+    }
+
+    return this.couch.viewDocs(design, view, config)
+    .then(( docs ) => docs.map(this.config.documentToModel));
+  }
 }
