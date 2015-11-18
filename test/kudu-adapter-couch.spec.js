@@ -37,6 +37,16 @@ class MockCouch {
 }
 
 class MockModel {
+  static schema = {
+    properties: {
+      linked: {
+        link: 'link',
+      },
+    },
+  }
+  constructor( data = {} ) {
+    Object.assign(this, data);
+  }
   toJSON() {
     return this;
   }
@@ -141,6 +151,12 @@ describe('Kudu CouchDB adapter', () => {
       let instance = new MockModel();
       return adapter.create(instance)
       .then(() => expect(instance).to.have.property('_rev', '1'));
+    });
+
+    it('should persist linked documents as references by unique identifier', () => {
+      let linked = new MockModel({ id: '1' });
+      let instance = new MockModel({ linked });
+      return expect(adapter.create(instance)).to.eventually.equal(instance);
     });
   });
 

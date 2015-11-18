@@ -76,6 +76,19 @@ export default class CouchAdapter {
     // would otherwise cause serialization to fail such as circular references.
     const doc = instance.toJSON();
 
+    // Linked instances are stored by their unique identifiers rather than
+    // nesting the structures. This is because it is much easier to have a
+    // single source of truth for each stored instance although there is a
+    // performance trade-off as we have to request both documents separately and
+    // link them ourselves.
+    const schema = instance.constructor.schema.properties;
+
+    Object.keys(doc).forEach(( key ) => {
+      if ( schema[ key ] && schema[ key ].link ) {
+        doc[ key ] = doc[ key ].id;
+      }
+    });
+
     return this.couch.insert(doc)
     .then(( res ) => {
 
