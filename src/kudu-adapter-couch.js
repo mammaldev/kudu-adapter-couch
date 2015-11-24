@@ -109,8 +109,14 @@ export default class CouchAdapter {
       throw new Error('Expected a Kudu model type and unique identifier.');
     }
 
-    return this.couch.get(id)
-    .then(( res ) => this.config.documentToModel(res));
+    const isArray = Array.isArray(id);
+    const method = isArray ? 'fetch' : 'get';
+
+    return this.couch[ method ](id)
+    .then(( res ) => isArray ?
+      res.map(this.config.documentToModel.bind(this.config)) :
+      this.config.documentToModel(res)
+    );
   }
 
   // Get all documents representing a given Kudu model type.

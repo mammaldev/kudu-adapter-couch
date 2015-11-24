@@ -13,10 +13,25 @@ class MockCouch {
   }
   get( id ) {
 
-    return Promise.resolve({
-      _id: '1',
-      _rev: '1',
-    });
+    return Promise.resolve(
+      Array.isArray(id) ?
+        [
+          {
+            _id: '1',
+            _rev: '1',
+          }
+        ] :
+        {
+          _id: '1',
+          _rev: '1',
+        }
+    );
+  }
+  fetch( ids ) {
+
+    return Promise.resolve([
+      { _id: '1', _rev: '1' },
+    ]);
   }
   view( design, view ) {
 
@@ -184,6 +199,10 @@ describe('Kudu CouchDB adapter', () => {
 
     it('should return the CouchDB document', () => {
       return expect(adapter.get('type', '1')).to.become({ id: '1', _rev: '1' });
+    });
+
+    it('should return an array of documents if "ids" was an array', () => {
+      return expect(adapter.get('type', [ '1' ])).to.become([ { id: '1', _rev: '1' } ]);
     });
   });
 
