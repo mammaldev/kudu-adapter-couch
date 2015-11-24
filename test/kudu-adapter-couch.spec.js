@@ -53,9 +53,10 @@ class MockCouch {
 
 class MockModel {
   static schema = {
-    properties: {
+    properties: {},
+    relationships: {
       linked: {
-        link: 'link',
+        type: 'link',
       },
     },
   }

@@ -81,10 +81,10 @@ export default class CouchAdapter {
     // single source of truth for each stored instance although there is a
     // performance trade-off as we have to request both documents separately and
     // link them ourselves.
-    const schema = instance.constructor.schema.properties;
+    const relationships = instance.constructor.schema.relationships;
 
     Object.keys(doc).forEach(( key ) => {
-      if ( schema[ key ] && schema[ key ].link ) {
+      if ( relationships[ key ] && doc[ key ].id ) {
         doc[ key ] = doc[ key ].id;
       }
     });
