@@ -1,6 +1,6 @@
 {
   "name": "kudu-adapter-couch",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "lib/kudu-adapter-couch.js",
   "scripts": {
     "compile": "babel -d lib/ src/",
