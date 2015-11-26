@@ -51,6 +51,12 @@ class MockCouch {
   }
 }
 
+class MockKudu {
+  getModel() {
+    return MockModel;
+  }
+}
+
 class MockModel {
   static schema = {
     properties: {},
@@ -77,8 +83,14 @@ let expect = chai.expect;
 
 describe('Kudu CouchDB adapter', () => {
 
+  let kudu;
+
+  beforeEach(() => {
+    kudu = new MockKudu();
+  });
+
   it('should throw if a host is not provided', () => {
-    let test = () => new Adapter({
+    let test = () => new Adapter(kudu, {
       port: 5984,
       path: '/test',
     });
@@ -86,7 +98,7 @@ describe('Kudu CouchDB adapter', () => {
   });
 
   it('should throw if a port is not provided', () => {
-    let test = () => new Adapter({
+    let test = () => new Adapter(kudu, {
       host: 'http://127.0.0.1',
       path: '/test',
     });
@@ -94,7 +106,7 @@ describe('Kudu CouchDB adapter', () => {
   });
 
   it('should throw if a path is not provided', () => {
-    let test = () => new Adapter({
+    let test = () => new Adapter(kudu, {
       host: 'http://127.0.0.1',
       port: 5984,
     });
@@ -102,7 +114,7 @@ describe('Kudu CouchDB adapter', () => {
   });
 
   it('should expose the config object', () => {
-    expect(new Adapter({
+    expect(new Adapter(kudu, {
       host: 'http://127.0.0.1',
       port: 5984,
       path: '/test',
@@ -111,7 +123,7 @@ describe('Kudu CouchDB adapter', () => {
 
   it('should allow a custom "document to model" function', () => {
     let documentToModel = () => {};
-    expect(new Adapter({
+    expect(new Adapter(kudu, {
       host: 'http://127.0.0.1',
       port: 5984,
       path: '/test',
@@ -120,7 +132,7 @@ describe('Kudu CouchDB adapter', () => {
   });
 
   it('should expose a default "view" config', () => {
-    expect(new Adapter({
+    expect(new Adapter(kudu, {
       host: 'http://127.0.0.1',
       port: 5984,
       path: '/test',
@@ -128,7 +140,7 @@ describe('Kudu CouchDB adapter', () => {
   });
 
   it('should expose a CouchDB interface', () => {
-    expect(new Adapter({
+    expect(new Adapter(kudu, {
       host: 'http://127.0.0.1',
       port: 5984,
       path: '/test',
@@ -140,7 +152,7 @@ describe('Kudu CouchDB adapter', () => {
     let adapter;
 
     beforeEach(() => {
-      adapter = new Adapter({
+      adapter = new Adapter(kudu, {
         host: 'http://127.0.0.1',
         port: 5984,
         path: '/test',
@@ -181,7 +193,7 @@ describe('Kudu CouchDB adapter', () => {
     let adapter;
 
     beforeEach(() => {
-      adapter = new Adapter({
+      adapter = new Adapter(kudu, {
         host: 'http://127.0.0.1',
         port: 5984,
         path: '/test',
@@ -212,7 +224,7 @@ describe('Kudu CouchDB adapter', () => {
     let adapter;
 
     beforeEach(() => {
-      adapter = new Adapter({
+      adapter = new Adapter(kudu, {
         host: 'http://127.0.0.1',
         port: 5984,
         path: '/test',
@@ -225,7 +237,7 @@ describe('Kudu CouchDB adapter', () => {
     });
 
     it('should throw if a "type" view is not configured', () => {
-      let adapter = new Adapter({
+      let adapter = new Adapter(kudu, {
         host: 'http://127.0.0.1',
         port: 5984,
         path: '/test',
@@ -247,12 +259,47 @@ describe('Kudu CouchDB adapter', () => {
     });
   });
 
+  describe('#getRelated', () => {
+
+    let adapter;
+
+    beforeEach(() => {
+      adapter = new Adapter(kudu, {
+        host: 'http://127.0.0.1',
+        port: 5984,
+        path: '/test',
+      });
+    });
+
+    it('should throw if not passed all required parameters', () => {
+      let test = () => adapter.getRelated();
+      expect(test).to.throw(Error, /ancestor/);
+    });
+
+    it('should throw if a "related" view is not configured', () => {
+      let adapter = new Adapter(kudu, {
+        host: 'http://127.0.0.1',
+        port: 5984,
+        path: '/test',
+        views: {
+          related: {},
+        },
+      });
+      let test = () => adapter.getRelated('ancestor', '1', 'type');
+      expect(test).to.throw(Error, /view/);
+    });
+
+    it('should return the related document', () => {
+      return expect(adapter.getRelated('ancestor', '1', 'type')).to.become({ id: '1', _rev: '1' });
+    });
+  });
+
   describe('#getFromView', () => {
 
     let adapter;
 
     beforeEach(() => {
-      adapter = new Adapter({
+      adapter = new Adapter(kudu, {
         host: 'http://127.0.0.1',
         port: 5984,
         path: '/test',

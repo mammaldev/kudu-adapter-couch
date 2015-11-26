@@ -24,7 +24,7 @@ import CouchPromised from 'couch-promised';
 //
 export default class CouchAdapter {
 
-  constructor( config = {} ) {
+  constructor( kudu, config = {} ) {
 
     // We use CouchPromised to interface with CouchDB. If we don't have the
     // required connection details we can't do anything.
@@ -35,13 +35,47 @@ export default class CouchAdapter {
     }
 
     // If a custom "document to model" function is not provided we default to
-    // one that simply maps "_id" to "id".
+    // one that maps "_id" to "id" and removes the "Id" suffix from any keys
+    // that refer to relationships.
     if ( typeof config.documentToModel !== 'function' ) {
 
       config.documentToModel = ( doc ) => {
 
+        const Model = kudu.getModel(doc.type);
+        const relationships = Model.schema.relationships;
+
+        Object.keys(doc).forEach(( key ) => {
+          if ( /Id$/.test(key) ) {
+            doc[ key.substring(0, key.length - 2) ] = doc[ key ];
+            delete doc[ key ];
+          }
+        });
+
         doc.id = doc._id;
         delete doc._id;
+
+        return doc;
+      };
+    }
+
+    // If a custom "model to document" function is not provided we default to
+    // one that removes any non-serializable properties from the instance and
+    // adds the "Id" suffix to any keys that refer to relationships. The suffix
+    // is used by some of the generic views to retrieve documents based on a
+    // relationship.
+    if ( typeof config.modelToDocument !== 'function' ) {
+
+      config.modelToDocument = ( instance ) => {
+
+        const relationships = instance.constructor.schema.relationships;
+        const doc = instance.toJSON();
+
+        Object.keys(doc).forEach(( key ) => {
+          if ( relationships[ key ] && doc[ key ].id ) {
+            doc[ `${ key }Id` ] = doc[ key ].id;
+            delete doc[ key ];
+          }
+        });
 
         return doc;
       };
@@ -54,7 +88,12 @@ export default class CouchAdapter {
       design: 'kudu-adapter-couch',
       view: 'type_id',
     };
+    config.views.related = config.views.related || {
+      design: 'kudu-adapter-couch',
+      view: 'type-ancestor_type-ancestor_id',
+    };
 
+    this.kudu = kudu;
     this.config = config;
     this.couch = new CouchPromised({
       host,
@@ -74,20 +113,7 @@ export default class CouchAdapter {
 
     // Prepare the instance for serialization. This removes any properties that
     // would otherwise cause serialization to fail such as circular references.
-    const doc = instance.toJSON();
-
-    // Linked instances are stored by their unique identifiers rather than
-    // nesting the structures. This is because it is much easier to have a
-    // single source of truth for each stored instance although there is a
-    // performance trade-off as we have to request both documents separately and
-    // link them ourselves.
-    const relationships = instance.constructor.schema.relationships;
-
-    Object.keys(doc).forEach(( key ) => {
-      if ( relationships[ key ] && doc[ key ].id ) {
-        doc[ key ] = doc[ key ].id;
-      }
-    });
+    const doc = this.config.modelToDocument(instance);
 
     return this.couch.insert(doc)
     .then(( res ) => {
@@ -146,6 +172,36 @@ export default class CouchAdapter {
       return {
         rows: res.rows.map(( row ) => this.config.documentToModel(row.doc)),
       };
+    });
+  }
+
+  getRelated( ancestorType, ancestorId, relationship ) {
+
+    if ( !ancestorType || !ancestorId || !relationship ) {
+      throw new Error(
+        'Expected an ancestor type, an identifier and a relationship object.'
+      );
+    }
+
+    const doc = this.config.views.related;
+
+    if ( !doc.design || !doc.view ) {
+      throw new Error('No CouchDB view available for type queries.');
+    }
+
+    return this.couch.view(doc.design, doc.view, {
+      key: [ relationship.type, ancestorType, ancestorId ],
+      include_docs: true,
+    })
+    .then(( res ) => {
+
+      if ( relationship.hasMany ) {
+        return {
+          rows: res.rows.map(( row ) => this.config.documentToModel(row.doc)),
+        };
+      }
+
+      return this.config.documentToModel(res.rows[ 0 ].doc);
     });
   }
 
