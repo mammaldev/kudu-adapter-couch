@@ -114,7 +114,9 @@ export default class CouchAdapter {
 
     return this.couch[ method ](id)
     .then(( res ) => isArray ?
-      res.map(this.config.documentToModel.bind(this.config)) :
+      {
+        rows: res.map(this.config.documentToModel.bind(this.config)),
+      } :
       this.config.documentToModel(res)
     );
   }

@@ -203,7 +203,7 @@ describe('Kudu CouchDB adapter', () => {
     });
 
     it('should return an array of documents if "ids" was an array', () => {
-      return expect(adapter.get('type', [ '1' ])).to.become([ { id: '1', _rev: '1' } ]);
+      return expect(adapter.get('type', [ '1' ])).to.become({ rows: [ { id: '1', _rev: '1' } ] });
     });
   });
 
