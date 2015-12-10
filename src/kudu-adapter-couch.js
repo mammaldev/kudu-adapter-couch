@@ -79,8 +79,8 @@ export default class CouchAdapter {
         });
 
         if ( instance.id ) {
-          instance._id = instance.id;
-          delete instance.id;
+          doc._id = doc.id;
+          delete doc.id;
         }
 
         return doc;

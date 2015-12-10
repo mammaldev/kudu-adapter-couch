@@ -77,7 +77,7 @@ class MockModel {
     Object.assign(this, data);
   }
   toJSON() {
-    return this;
+    return Object.assign({}, this);
   }
 }
 
@@ -321,6 +321,11 @@ describe('Kudu CouchDB adapter', () => {
     it('should return the instance it is passed', () => {
       let instance = new MockModel({ id: '1', _rev: '1' });
       return expect(adapter.update(instance)).to.eventually.equal(instance);
+    });
+
+    it('should not modify the instance it is passed', () => {
+      let instance = new MockModel({ id: '1', _rev: '1' });
+      return expect(adapter.update(instance)).to.eventually.not.have.property('_id');
     });
 
     it('should update the "_rev" property on the instance', () => {
