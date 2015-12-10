@@ -62,7 +62,8 @@ export default class CouchAdapter {
     // one that removes any non-serializable properties from the instance and
     // adds the "Id" suffix to any keys that refer to relationships. The suffix
     // is used by some of the generic views to retrieve documents based on a
-    // relationship.
+    // relationship. We also rename the "id" property required by Kudu to "_id"
+    // as required by CouchDB.
     if ( typeof config.modelToDocument !== 'function' ) {
 
       config.modelToDocument = ( instance ) => {
@@ -76,6 +77,11 @@ export default class CouchAdapter {
             delete doc[ key ];
           }
         });
+
+        if ( instance.id ) {
+          instance._id = instance.id;
+          delete instance.id;
+        }
 
         return doc;
       };
@@ -202,6 +208,31 @@ export default class CouchAdapter {
       }
 
       return this.config.documentToModel(res.rows[ 0 ].doc);
+    });
+  }
+
+  // Update a Kudu model instance that is already stored in CouchDB.
+  update( instance ) {
+
+    // If we don't have an instance, or the instance does not appear to be a
+    // Kudu model we can't try to update it.
+    if ( !instance || !instance.toJSON ) {
+      throw new Error('Expected a Kudu model instance to update.');
+    }
+
+    // Prepare the instance for serialization. This removes any properties that
+    // would otherwise cause serialization to fail such as circular references.
+    const doc = this.config.modelToDocument(instance);
+
+    return this.couch.update(doc)
+    .then(( res ) => {
+
+      // CouchDB responds with an object containing a new revision for the
+      // updated document. We add that to the original instance and return it
+      // (rather than a new instance).
+      instance._rev = res._rev;
+
+      return instance;
     });
   }
 

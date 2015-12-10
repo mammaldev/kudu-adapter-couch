@@ -11,6 +11,13 @@ class MockCouch {
       _rev: '1',
     });
   }
+  update( doc ) {
+
+    return Promise.resolve({
+      _id: '1',
+      _rev: '2',
+    });
+  }
   get( id ) {
 
     return Promise.resolve(
@@ -291,6 +298,41 @@ describe('Kudu CouchDB adapter', () => {
 
     it('should return the related document', () => {
       return expect(adapter.getRelated('ancestor', '1', 'type')).to.become({ id: '1', _rev: '1' });
+    });
+  });
+
+  describe('#update', () => {
+
+    let adapter;
+
+    beforeEach(() => {
+      adapter = new Adapter(kudu, {
+        host: 'http://127.0.0.1',
+        port: 5984,
+        path: '/test',
+      });
+    });
+
+    it('should throw if not passed a Kudu model instance', () => {
+      let test = () => adapter.update();
+      expect(test).to.throw(Error, /model instance/);
+    });
+
+    it('should return the instance it is passed', () => {
+      let instance = new MockModel({ id: '1', _rev: '1' });
+      return expect(adapter.update(instance)).to.eventually.equal(instance);
+    });
+
+    it('should update the "_rev" property on the instance', () => {
+      let instance = new MockModel({ id: '1', _rev: '1' });
+      return adapter.update(instance)
+      .then(() => expect(instance).to.have.property('_rev', '2'));
+    });
+
+    it('should persist linked documents as references by unique identifier', () => {
+      let linked = new MockModel({ id: '1' });
+      let instance = new MockModel({ id: '2', _rev: '1', linked });
+      return expect(adapter.update(instance)).to.eventually.equal(instance);
     });
   });
 
