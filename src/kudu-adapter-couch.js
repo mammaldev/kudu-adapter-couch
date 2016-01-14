@@ -36,7 +36,8 @@ export default class CouchAdapter {
 
     // If a custom "document to model" function is not provided we default to
     // one that maps "_id" to "id" and removes the "Id" suffix from any keys
-    // that refer to relationships.
+    // that refer to to-one relationships, and removes the "Ids" suffix from
+    // those that refer to to-many relationships.
     if ( typeof config.documentToModel !== 'function' ) {
 
       config.documentToModel = ( doc ) => {
@@ -45,8 +46,19 @@ export default class CouchAdapter {
         const relationships = Model.schema.relationships;
 
         Object.keys(doc).forEach(( key ) => {
-          if ( /Id$/.test(key) ) {
-            doc[ key.substring(0, key.length - 2) ] = doc[ key ];
+
+          const match = key.match(/Id(s?)$/);
+
+          if ( match ) {
+
+            // If the regex didn't find anything to match the captured group we
+            // have a key corresponding to a to-one relationship. If it did it's
+            // a to-many relationship.
+            const newKey = key.substring(
+              0, key.length - ( match [ 1 ] ? 3 : 2 )
+            );
+
+            doc[ newKey ] = doc[ key ];
             delete doc[ key ];
           }
         });
@@ -72,8 +84,17 @@ export default class CouchAdapter {
         const doc = instance.toJSON();
 
         Object.keys(doc).forEach(( key ) => {
-          if ( relationships[ key ] && doc[ key ].id ) {
-            doc[ `${ key }Id` ] = doc[ key ].id;
+
+          if ( relationships[ key ] ) {
+
+            const prop = doc[ key ];
+
+            if ( prop.id ) {
+              doc[ `${ key }Id` ] = prop.id;
+            } else if ( Array.isArray(prop) && prop[ 0 ].id ) {
+              doc[ `${ key }Ids` ] = prop.map(( item ) => item.id);
+            }
+
             delete doc[ key ];
           }
         });
