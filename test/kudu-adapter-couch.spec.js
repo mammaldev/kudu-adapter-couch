@@ -17,7 +17,7 @@ class MockModel {
         type: 'link',
       },
     },
-  }
+  };
   constructor( data = {} ) {
     Object.assign(this, data);
   }
@@ -28,7 +28,7 @@ class MockModel {
 
 const Adapter = proxyquire('../src/kudu-adapter-couch', {
   'couch-promised': MockCouch,
-});
+}).default;
 
 chai.use(chaiAsPromised);
 let expect = chai.expect;
