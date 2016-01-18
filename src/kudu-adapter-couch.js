@@ -43,7 +43,6 @@ export default class CouchAdapter {
       config.documentToModel = ( doc ) => {
 
         const Model = kudu.getModel(doc.type);
-        const relationships = Model.schema.relationships;
 
         Object.keys(doc).forEach(( key ) => {
 
@@ -66,7 +65,7 @@ export default class CouchAdapter {
         doc.id = doc._id;
         delete doc._id;
 
-        return doc;
+        return new Model(doc);
       };
     }
 
