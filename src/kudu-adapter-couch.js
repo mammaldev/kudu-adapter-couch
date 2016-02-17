@@ -195,6 +195,20 @@ export default class CouchAdapter {
     })
     .then(( res ) => {
 
+      if ( res.error ) {
+
+        switch ( res.reason ) {
+
+        case 'missing':
+          throw new Error(
+            `The CouchDB design document "${ doc.design }" is missing.`
+          );
+
+        case 'missing_named_view':
+          throw new Error(`The CouchDB view "${ doc.view }" is missing.`);
+        }
+      }
+
       return {
         rows: res.rows.map(( row ) => this.config.documentToModel(row.doc)),
       };

@@ -42,6 +42,14 @@ export default class MockCouch {
 
   view( design, view ) {
 
+    if ( design === 'missing' ) {
+      return Promise.resolve({ error: 'not_found', reason: 'missing' });
+    }
+
+    if ( view === 'missing' ) {
+      return Promise.resolve({ error: 'not_found', reason: 'missing_named_view' });
+    }
+
     return Promise.resolve({
       rows: [
         { doc: { _id: '1', _rev: '1' } },

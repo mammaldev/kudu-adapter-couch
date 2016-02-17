@@ -201,6 +201,36 @@ describe('Kudu CouchDB adapter', () => {
       expect(test).to.throw(Error, /view/);
     });
 
+    it('should throw if the client returns a "missing design document" error', () => {
+      let adapter = new Adapter(kudu, {
+        host: 'http://127.0.0.1',
+        port: 5984,
+        path: '/test',
+        views: {
+          type: {
+            design: 'missing',
+            view: 'type_id',
+          },
+        },
+      });
+      return expect(adapter.getAll('type')).to.be.rejectedWith(Error, /design document/);
+    });
+
+    it('should throw if the client returns a "missing named view" error', () => {
+      let adapter = new Adapter(kudu, {
+        host: 'http://127.0.0.1',
+        port: 5984,
+        path: '/test',
+        views: {
+          type: {
+            design: 'valid',
+            view: 'missing',
+          },
+        },
+      });
+      return expect(adapter.getAll('type')).to.be.rejectedWith(Error, /view "[^"]+" is missing/);
+    });
+
     it('should return an array of CouchDB documents', () => {
       return expect(adapter.getAll('type')).to.become({
         rows: [
